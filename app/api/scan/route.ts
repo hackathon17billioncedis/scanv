@@ -70,9 +70,9 @@ export async function POST(request: NextRequest) {
       report,
     }
 
-    storeReport(result)
+    await storeReport(result)
 
-    return NextResponse.json({ id })
+    return NextResponse.json({ id, result })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('Scan failed:', message)

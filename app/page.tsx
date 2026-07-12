@@ -95,6 +95,7 @@ export default function Home() {
         throw new Error(err.error || "Scan failed");
       }
       const data = await res.json();
+      try { sessionStorage.setItem(`scanv-${data.id}`, JSON.stringify(data.result)); } catch {}
       router.push(`/scan/${data.id}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");

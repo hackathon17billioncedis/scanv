@@ -6,28 +6,36 @@ import { useScanCtx } from "@/contexts/ScanContext";
 import { ExecutiveSummary } from "@/components/ExecutiveSummary";
 import { FindingCard } from "@/components/FindingCard";
 import { GradeBadge } from "@/components/GradeBadge";
+import type { ScanResult, SecurityReport, ReportFinding } from "@/lib/types";
 
 type Status = "pending" | "scanning" | "complete" | "error";
 
-interface ScanEntry {
-  status: Status;
-  error?: string;
-  report?: {
-    grade: string;
-    score: number;
-    color: string;
-    summary: string;
-    executiveSummary: string;
-    findings: {
-      severity: "critical" | "high" | "medium" | "low" | "info";
-      title: string;
-      details: string;
-      plainEnglish: string;
-    }[];
+interface NormalizedReport {
+  grade: string;
+  score: number;
+  color: string;
+  executiveSummary: string;
+  findings: {
+    severity: string;
+    title: string;
+    details: string;
+    plainEnglish: string;
+  }[];
+}
+
+function normalize(r: SecurityReport): NormalizedReport {
+  return {
+    grade: r.grade,
+    score: r.score,
+    color: r.trafficLight,
+    executiveSummary: r.executiveSummary,
+    findings: r.findings.map((f: ReportFinding) => ({
+      severity: f.severity,
+      title: f.title,
+      details: f.technicalDetail,
+      plainEnglish: f.plainEnglish,
+    })),
   };
-  url?: string | null;
-  hash?: string | null;
-  fileName?: string | null;
 }
 
 export default function ScanResultPage() {
@@ -35,10 +43,39 @@ export default function ScanResultPage() {
   const id = params.id as string;
   const { setScanning } = useScanCtx();
 
-  const [entry, setEntry] = useState<ScanEntry | null>(null);
+  const [entry, setEntry] = useState<{
+    status: Status;
+    report?: NormalizedReport;
+    error?: string;
+    fileName?: string | null;
+    target?: string;
+    hash?: string | null;
+    url?: string | null;
+  } | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const stored = typeof window !== "undefined"
+      ? sessionStorage.getItem(`scanv-${id}`)
+      : null;
+
+    if (stored) {
+      try {
+        const data = JSON.parse(stored) as ScanResult;
+        setEntry({
+          status: "complete",
+          report: normalize(data.report),
+          fileName: data.fileName,
+          target: data.target,
+          hash: data.fileHash,
+          url: data.target,
+        });
+        return;
+      } catch {
+        // stored data invalid, fall through to poll
+      }
+    }
+
     setScanning(true);
     let cancelled = false;
 
@@ -53,12 +90,17 @@ export default function ScanResultPage() {
             }
             throw new Error("Failed to fetch");
           }
-          const data: ScanEntry = await res.json();
+          const data: ScanResult = await res.json();
           if (!cancelled) {
-            setEntry(data);
-            if (data.status === "complete" || data.status === "error") {
-              return;
-            }
+            setEntry({
+              status: "complete",
+              report: normalize(data.report),
+              fileName: data.fileName,
+              target: data.target,
+              hash: data.fileHash,
+              url: data.target,
+            });
+            return;
           }
         } catch {
           if (!cancelled) {
@@ -101,7 +143,7 @@ export default function ScanResultPage() {
         <div className="text-center">
           <div className="cyber-spinner h-10 w-10 mx-auto" />
           <p className="mt-4 font-mono text-sm sm:text-base" style={{ color: "var(--cyber-cyan)" }}>
-            {entry?.status === "scanning" ? "scanning target..." : "queued..."}
+            queued...
           </p>
           <p className="text-xs font-mono mt-2" style={{ color: "var(--cyber-text-muted)" }}>
             $ estimated &lt;30s
