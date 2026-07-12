@@ -26,6 +26,7 @@ interface ScanEntry {
   };
   url?: string | null;
   hash?: string | null;
+  fileName?: string | null;
 }
 
 export default function ScanResultPage() {
@@ -141,7 +142,9 @@ export default function ScanResultPage() {
             Scan Results
           </h1>
           <p className="text-xs font-mono mt-1" style={{ color: "var(--cyber-text-muted)" }}>
-            target: {entry.url ? (
+            target: {entry.fileName ? (
+              <span style={{ color: "var(--cyber-cyan)" }}>{entry.fileName}</span>
+            ) : entry.url ? (
               <span style={{ color: "var(--cyber-cyan)" }}>{entry.url}</span>
             ) : (
               <span style={{ color: "var(--cyber-cyan)" }}>{entry.hash?.slice(0, 16)}...</span>

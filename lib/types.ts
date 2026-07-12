@@ -16,6 +16,7 @@ export interface ScanResult {
   id: string
   target: string
   fileHash: string | null
+  fileName: string | null
   timestamp: number
   portMode: 'quick' | 'deep'
   portScan: {

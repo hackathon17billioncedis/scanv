@@ -1,17 +1,67 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 type ScanType = "domain" | "hash";
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function computeSHA256(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export default function Home() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [scanType, setScanType] = useState<ScanType>("domain");
   const [target, setTarget] = useState("");
   const [depth, setDepth] = useState<"quick" | "deep">("quick");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [fileSize, setFileSize] = useState(0);
+  const [computingHash, setComputingHash] = useState(false);
+
+  async function handleFile(file: File) {
+    setComputingHash(true);
+    setError("");
+    try {
+      const hash = await computeSHA256(file);
+      setTarget(hash);
+      setFileName(file.name);
+      setFileSize(file.size);
+    } catch {
+      setError("Failed to compute file hash");
+    } finally {
+      setComputingHash(false);
+    }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  }
+
+  function clearFile() {
+    setTarget("");
+    setFileName("");
+    setFileSize(0);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -28,6 +78,7 @@ export default function Home() {
       body.depth = depth;
     } else {
       body.hash = target.trim();
+      if (fileName) body.fileName = fileName;
     }
 
     try {
@@ -100,13 +151,13 @@ export default function Home() {
               className="block text-xs font-mono mb-1.5 tracking-wider uppercase"
               style={{ color: "var(--cyber-text-muted)" }}
             >
-              {scanType === "domain" ? "Target // domain" : "Target // sha256"}
+              {scanType === "domain" ? "Target // domain" : fileName ? "Target // sha256 (auto)" : "Target // sha256"}
             </label>
             <input
               id="target"
               type="text"
               value={target}
-              onChange={(e) => setTarget(e.target.value)}
+              onChange={(e) => { setTarget(e.target.value); if (fileName && e.target.value !== target) clearFile(); }}
               placeholder={
                 scanType === "domain"
                   ? "example.com"
@@ -114,8 +165,79 @@ export default function Home() {
               }
               className="cyber-input w-full px-4 py-2.5 text-sm font-mono"
               required
+              readOnly={!!fileName}
             />
           </div>
+
+          {scanType === "hash" && (
+            <div>
+              <label
+                className="block text-xs font-mono mb-1.5 tracking-wider uppercase"
+                style={{ color: "var(--cyber-text-muted)" }}
+              >
+                Upload // file
+              </label>
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleDrop}
+                onClick={() => !fileName && fileInputRef.current?.click()}
+                style={{
+                  border: "1px dashed rgba(0, 212, 255, 0.25)",
+                  borderRadius: 12,
+                  padding: fileName ? 12 : 24,
+                  textAlign: "center",
+                  cursor: fileName ? "default" : "pointer",
+                  background: fileName ? "rgba(0, 212, 255, 0.04)" : "rgba(255,255,255,0.02)",
+                  transition: "all 0.3s",
+                }}
+                className="font-mono text-sm"
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="*/*"
+                  onChange={handleFileChange}
+                  style={{ display: "none" }}
+                />
+                {computingHash ? (
+                  <span style={{ color: "var(--cyber-cyan)" }}>
+                    computing sha-256...
+                  </span>
+                ) : fileName ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <div style={{ flex: 1, textAlign: "left", overflow: "hidden" }}>
+                      <div style={{ color: "var(--cyber-cyan)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {fileName}
+                      </div>
+                      <div style={{ color: "var(--cyber-text-muted)", fontSize: 11, marginTop: 2 }}>
+                        {formatFileSize(fileSize)} — hash computed
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); clearFile(); }}
+                      style={{
+                        background: "none",
+                        border: "1px solid rgba(255,0,85,0.3)",
+                        color: "var(--cyber-pink)",
+                        borderRadius: 6,
+                        padding: "4px 10px",
+                        fontSize: 11,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      remove
+                    </button>
+                  </div>
+                ) : (
+                  <span style={{ color: "var(--cyber-text-muted)" }}>
+                    drop a file here or click to browse
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {scanType === "domain" && (
             <div>

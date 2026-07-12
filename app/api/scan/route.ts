@@ -23,10 +23,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { target, portMode, fileHash } = body as {
+    const { target, portMode, fileHash, fileName } = body as {
       target: string
       portMode: 'quick' | 'deep'
       fileHash?: string
+      fileName?: string
     }
 
     if (!target || typeof target !== 'string') {
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
       id,
       target: cleanTarget,
       fileHash: fileHash?.trim() || null,
+      fileName: fileName?.trim() || null,
       timestamp: Date.now(),
       portMode: portMode || 'quick',
       portScan: {
