@@ -1,14 +1,25 @@
-interface ExecutiveSummaryProps {
-  summary: string
+interface Props {
+  summary: string;
 }
 
-export default function ExecutiveSummary({ summary }: ExecutiveSummaryProps) {
+export function ExecutiveSummary({ summary }: Props) {
   return (
-    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5">
-      <h2 className="text-sm font-semibold text-indigo-800 uppercase tracking-wider mb-2">
-        Executive Summary
+    <div
+      className="cyber-card p-5"
+      style={{
+        borderLeft: "3px solid var(--cyber-cyan)",
+      }}
+    >
+      <h2 className="text-xs font-mono tracking-wider uppercase mb-3">
+        <span style={{ color: "var(--cyber-cyan)" }}>$</span>{" "}
+        <span style={{ color: "var(--cyber-text-muted)" }}>executive-summary</span>
       </h2>
-      <p className="text-sm text-indigo-900 leading-relaxed">{summary}</p>
+      <div
+        className="text-sm font-mono leading-relaxed whitespace-pre-line"
+        style={{ color: "var(--cyber-text)" }}
+      >
+        {summary}
+      </div>
     </div>
-  )
+  );
 }

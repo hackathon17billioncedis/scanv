@@ -1,165 +1,175 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import Link from 'next/link'
-import GradeBadge from '@/components/GradeBadge'
-import FindingCard from '@/components/FindingCard'
-import ExecutiveSummary from '@/components/ExecutiveSummary'
-import type { ScanResult } from '@/lib/types'
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { ExecutiveSummary } from "@/components/ExecutiveSummary";
+import { FindingCard } from "@/components/FindingCard";
+import { GradeBadge } from "@/components/GradeBadge";
+
+type Status = "pending" | "scanning" | "complete" | "error";
+
+interface ScanEntry {
+  status: Status;
+  error?: string;
+  report?: {
+    grade: string;
+    score: number;
+    color: string;
+    summary: string;
+    executiveSummary: string;
+    findings: {
+      severity: "critical" | "high" | "medium" | "low" | "info";
+      title: string;
+      details: string;
+      plainEnglish: string;
+    }[];
+  };
+  url?: string | null;
+  hash?: string | null;
+}
 
 export default function ScanResultPage() {
-  const params = useParams()
-  const [result, setResult] = useState<ScanResult | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const params = useParams();
+  const id = params.id as string;
+
+  const [entry, setEntry] = useState<ScanEntry | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const id = params.id
-    if (!id) return
+    let cancelled = false;
 
     async function poll() {
-      let attempts = 0
-      const maxAttempts = 30
-
-      while (attempts < maxAttempts) {
+      while (!cancelled) {
         try {
-          const res = await fetch(`/api/scan?id=${id}`)
-          if (res.ok) {
-            const data = await res.json()
-            setResult(data)
-            setLoading(false)
-            return
+          const res = await fetch(`/api/scan?id=${id}`);
+          if (!res.ok) {
+            if (res.status === 404) {
+              setError("Scan not found");
+              return;
+            }
+            throw new Error("Failed to fetch");
+          }
+          const data: ScanEntry = await res.json();
+          if (!cancelled) {
+            setEntry(data);
+            if (data.status === "complete" || data.status === "error") {
+              return;
+            }
           }
         } catch {
-          // continue polling
+          if (!cancelled) {
+            setError("Connection error");
+          }
+          return;
         }
-        attempts++
-        await new Promise((r) => setTimeout(r, 1000))
+        await new Promise((r) => setTimeout(r, 1000));
       }
-      setError('Scan did not complete in time. Please try again.')
-      setLoading(false)
     }
 
-    poll()
-  }, [params.id])
+    poll();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
-  if (loading) {
+  if (error) {
     return (
-      <main className="flex-1 flex items-center justify-center px-4">
+      <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center">
-          <div className="inline-block w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-sm text-gray-500">Waiting for scan results...</p>
+          <p style={{ color: "var(--cyber-pink)" }} className="font-mono font-semibold text-lg">
+            !error
+          </p>
+          <p className="text-sm font-mono mt-2" style={{ color: "var(--cyber-text-muted)" }}>
+            {error}
+          </p>
+          <a href="/" className="cyber-link mt-6 inline-block text-sm font-mono underline">
+            &lt; back /scan
+          </a>
         </div>
-      </main>
-    )
+      </div>
+    );
   }
 
-  if (error || !result) {
+  if (!entry || entry.status === "pending" || entry.status === "scanning") {
     return (
-      <main className="flex-1 flex items-center justify-center px-4">
+      <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center">
-          <p className="text-red-600 text-sm mb-3">{error || 'Report not found'}</p>
-          <Link href="/" className="text-indigo-600 text-sm font-semibold hover:underline">
-            Back to ScanV
-          </Link>
+          <div className="cyber-spinner h-10 w-10 mx-auto" />
+          <p className="mt-4 font-mono text-base" style={{ color: "var(--cyber-cyan)" }}>
+            {entry?.status === "scanning" ? "scanning target..." : "queued..."}
+          </p>
+          <p className="text-xs font-mono mt-2" style={{ color: "var(--cyber-text-muted)" }}>
+            $ estimated &lt;30s
+          </p>
         </div>
-      </main>
-    )
+      </div>
+    );
   }
 
-  const grade = result.report.grade
-  const score = result.report.score
-  const trafficLight = result.report.trafficLight
+  if (entry.status === "error") {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <p className="font-mono font-semibold text-lg" style={{ color: "var(--cyber-pink)" }}>
+            !scan_failed
+          </p>
+          <p className="text-sm font-mono mt-2" style={{ color: "var(--cyber-text-muted)" }}>
+            {entry.error || "An unknown error occurred"}
+          </p>
+          <a href="/" className="cyber-link mt-6 inline-block text-sm font-mono underline">
+            &lt; retry
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const report = entry.report!;
 
   return (
-    <main className="flex-1 px-4 py-8 max-w-3xl mx-auto w-full">
-      <div className="mb-6">
-        <Link href="/" className="text-xs text-gray-500 hover:text-gray-700">
-          &larr; Back to ScanV
-        </Link>
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+    <div className="flex-1 max-w-4xl mx-auto w-full p-6 space-y-6">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 mb-1">{result.target}</h1>
-          <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-            <span>Port scan: {result.portMode}</span>
-            <span>&middot;</span>
-            <span>{new Date(result.timestamp).toLocaleString()}</span>
-            {result.fileHash && (
-              <>
-                <span>&middot;</span>
-                <span className="font-mono">Hash: {result.fileHash.slice(0, 12)}...</span>
-              </>
+          <a href="/" className="text-sm font-mono cyber-link">
+            &lt;_ back
+          </a>
+          <h1
+            className="text-2xl font-bold mt-2 cyber-glitch"
+            data-text="Scan Results"
+            style={{ fontFamily: "var(--font-geist-mono), monospace" }}
+          >
+            Scan Results
+          </h1>
+          <p className="text-xs font-mono mt-1" style={{ color: "var(--cyber-text-muted)" }}>
+            target: {entry.url ? (
+              <span style={{ color: "var(--cyber-cyan)" }}>{entry.url}</span>
+            ) : (
+              <span style={{ color: "var(--cyber-cyan)" }}>{entry.hash?.slice(0, 16)}...</span>
             )}
-          </div>
+          </p>
         </div>
-        <GradeBadge grade={grade} score={score} trafficLight={trafficLight} />
+        <GradeBadge grade={report.grade} score={report.score} color={report.color} />
       </div>
 
-      <ExecutiveSummary summary={result.report.executiveSummary} />
+      <ExecutiveSummary summary={report.executiveSummary} />
 
-      {result.portScan.partial && (
-        <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-xs text-amber-800">
-          Port scan was partially incomplete due to time limits. Some ports may not have been checked. Switch to Quick mode for faster results.
-        </div>
-      )}
-
-      <div className="mt-6 space-y-3">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-          Findings ({result.report.findings.length})
+      <div className="space-y-3">
+        <h2
+          className="text-sm font-mono tracking-wider uppercase"
+          style={{ color: "var(--cyber-text-muted)" }}
+        >
+          Findings &lt;{report.findings.length}&gt;
         </h2>
-        {result.report.findings.length === 0 ? (
-          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-6 text-center">
-            <p className="text-green-700 font-semibold">No issues found</p>
-            <p className="text-green-600 text-sm mt-1">Everything looks good for this target.</p>
-          </div>
+        {report.findings.length === 0 ? (
+          <p className="text-sm font-mono" style={{ color: "var(--cyber-text-muted)" }}>
+            No significant findings detected.
+          </p>
         ) : (
-          result.report.findings.map((f, i) => (
+          report.findings.map((f, i) => (
             <FindingCard key={i} finding={f} />
           ))
         )}
       </div>
-
-      {result.portScan.findings.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            Port Scan Details
-          </h2>
-          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-left px-4 py-2 font-semibold text-gray-600">Port</th>
-                  <th className="text-left px-4 py-2 font-semibold text-gray-600">Service</th>
-                  <th className="text-left px-4 py-2 font-semibold text-gray-600">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.portScan.findings.map((f) => (
-                  <tr key={f.port} className="border-b border-gray-100 last:border-0">
-                    <td className="px-4 py-2 font-mono text-gray-900">{f.port}</td>
-                    <td className="px-4 py-2 text-gray-700">{f.service}</td>
-                    <td className="px-4 py-2">
-                      <span className="inline-flex items-center gap-1 text-green-700">
-                        <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-                        Open
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-8 py-6 border-t border-gray-200 text-center">
-        <p className="text-xs text-gray-400">
-          Report ID: {result.id} &middot; All scan data is temporary and stored in memory
-        </p>
-      </div>
-    </main>
-  )
+    </div>
+  );
 }

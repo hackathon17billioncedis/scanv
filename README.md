@@ -1,36 +1,145 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ScanV — Vulnerability Scanner
+
+**ScanV** is a modern web-based vulnerability scanner that fuses TCP port scanning with VirusTotal intelligence and delivers **letter-grade (A–F) reports** with traffic-light indicators. Every finding pairs technical detail with a plain-English translation, built for both security engineers and the executives who need to understand them.
+
+---
+
+## Features
+
+| Capability | Description |
+|---|---|
+| **Port Scanner** | Quick mode (26 common ports) or Deep mode (250+ ports). Detects open services and flags known-risky ports (FTP, Telnet, RDP, SMB, etc.). |
+| **VirusTotal Integration** | Submit a URL (with polling for analysis) or look up a file by SHA-256 hash against 70+ antivirus engines. |
+| **Grade-Based Report** | A–F scoring with traffic-light coloring (Green / Amber / Red). Score starts at 100 and deducts per-severity penalty. |
+| **Plain English** | Every finding includes a technical description and a plain-English explanation for non-technical stakeholders. |
+| **Executive Summary** | Concise overview targeting critical and high-severity findings, suitable for management dashboards or compliance reviews. |
+| **Async Polling** | Scan kicks off server-side and the client polls for completion — handles Vercel's 30s Hobby timeout gracefully. |
+
+---
+
+## Architecture
+
+```
+┌─────────────┐     POST /api/scan      ┌──────────────────┐
+│  Landing     │ ──────────────────────→ │  Scan API Route   │
+│  (page.tsx)  │                         │  (route.ts)       │
+│             │ ←── redirect /scan/id── │  returns { id }   │
+└─────────────┘                         └────────┬─────────┘
+                                                 │
+                    ┌────────────────────────────┼────────────────────────────┐
+                    │                            │                            │
+                    ▼                            ▼                            ▼
+          ┌─────────────────┐          ┌──────────────────┐       ┌──────────────────┐
+          │  Port Scanner    │          │  VirusTotal API  │       │  In-Memory Store  │
+          │  (port-scanner)  │          │  (virus-total)    │       │  (store.ts)       │
+          │  TCP connect     │          │  URL submit/poll  │       │  Map<string,      │
+          │  concurrency 20  │          │  Hash lookup      │       │   ScanEntry>      │
+          └────────┬────────┘          └────────┬─────────┘       └──────────────────┘
+                   │                            │
+                   └──────────┬─────────────────┘
+                              ▼
+                    ┌──────────────────┐
+                    │  Report Engine   │
+                    │  (reporter.ts)   │
+                    │  Grade, Score,   │
+                    │  Plain English   │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │  Scan Results    │
+                    │  (scan/[id])     │
+                    │  Polls GET API   │
+                    └──────────────────┘
+```
+
+---
+
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS v4
+- **Runtime:** Node.js (TCP port scanning via `net`)
+- **External API:** VirusTotal API v3
+- **Deployment:** Vercel (Hobby)
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- npm or yarn
+- [VirusTotal API key](https://www.virustotal.com/gui/my-apikey) (free tier)
+
+### Install
+
+```bash
+git clone https://github.com/hackathon17billioncedis/scanv.git
+cd scanv
+npm install
+```
+
+### Environment Variables
+
+Create `.env.local` at the project root:
+
+```env
+VIRUSTOTAL_API_KEY=your_api_key_here
+```
+
+> **Note:** The API key is never committed to the repository. Set it via Vercel dashboard for production deployments.
+
+### Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build for Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## API Reference
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### `POST /api/scan`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Initiates a new scan. Returns `{ id }` for polling.
 
-## Deploy on Vercel
+**URL Scan:**
+```json
+{ "url": "https://example.com", "depth": "quick" }
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**File Hash Lookup:**
+```json
+{ "hash": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" }
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### `GET /api/scan?id={id}`
+
+Poll for results. Returns the full `ScanEntry` object, including `status` (`pending`, `scanning`, `complete`, `error`) and the `SecurityReport` when complete.
+
+---
+
+## Deployment
+
+Deployed on **Vercel**. Pushes to the `main` branch trigger automatic redeploys.
+
+### Required Environment Variable
+
+Set `VIRUSTOTAL_API_KEY` in your Vercel project settings → Environment Variables.
+
+---
+
+## License
+
+MIT
