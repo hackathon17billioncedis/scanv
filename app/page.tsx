@@ -76,10 +76,11 @@ export default function Home() {
       if (domain && !domain.startsWith("http://") && !domain.startsWith("https://")) {
         domain = "https://" + domain;
       }
-      body.url = domain;
-      body.depth = depth;
+      body.target = domain;
+      body.portMode = depth;
     } else {
-      body.hash = target.trim();
+      body.target = target.trim();
+      body.fileHash = target.trim();
       if (fileName) body.fileName = fileName;
     }
 
