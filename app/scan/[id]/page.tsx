@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useScanCtx } from "@/contexts/ScanContext";
 import { ExecutiveSummary } from "@/components/ExecutiveSummary";
 import { FindingCard } from "@/components/FindingCard";
 import { GradeBadge } from "@/components/GradeBadge";
@@ -32,11 +33,13 @@ interface ScanEntry {
 export default function ScanResultPage() {
   const params = useParams();
   const id = params.id as string;
+  const { setScanning } = useScanCtx();
 
   const [entry, setEntry] = useState<ScanEntry | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    setScanning(true);
     let cancelled = false;
 
     async function poll() {
@@ -70,12 +73,13 @@ export default function ScanResultPage() {
     poll();
     return () => {
       cancelled = true;
+      setScanning(false);
     };
-  }, [id]);
+  }, [id, setScanning]);
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="text-center">
           <p style={{ color: "var(--cyber-pink)" }} className="font-mono font-semibold text-lg">
             !error
@@ -93,10 +97,10 @@ export default function ScanResultPage() {
 
   if (!entry || entry.status === "pending" || entry.status === "scanning") {
     return (
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="text-center">
           <div className="cyber-spinner h-10 w-10 mx-auto" />
-          <p className="mt-4 font-mono text-base" style={{ color: "var(--cyber-cyan)" }}>
+          <p className="mt-4 font-mono text-sm sm:text-base" style={{ color: "var(--cyber-cyan)" }}>
             {entry?.status === "scanning" ? "scanning target..." : "queued..."}
           </p>
           <p className="text-xs font-mono mt-2" style={{ color: "var(--cyber-text-muted)" }}>
@@ -109,7 +113,7 @@ export default function ScanResultPage() {
 
   if (entry.status === "error") {
     return (
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <div className="text-center max-w-md">
           <p className="font-mono font-semibold text-lg" style={{ color: "var(--cyber-pink)" }}>
             !scan_failed
@@ -128,20 +132,20 @@ export default function ScanResultPage() {
   const report = entry.report!;
 
   return (
-    <div className="flex-1 max-w-4xl mx-auto w-full p-6 space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <a href="/" className="text-sm font-mono cyber-link">
+    <div className="flex-1 max-w-4xl mx-auto w-full p-4 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-4">
+        <div className="flex-1 min-w-0">
+          <a href="/" className="text-xs sm:text-sm font-mono cyber-link">
             &lt;_ back
           </a>
           <h1
-            className="text-2xl font-bold mt-2 cyber-glitch"
+            className="text-xl sm:text-2xl font-bold mt-2 cyber-glitch"
             data-text="Scan Results"
             style={{ fontFamily: "var(--font-geist-mono), monospace" }}
           >
             Scan Results
           </h1>
-          <p className="text-xs font-mono mt-1" style={{ color: "var(--cyber-text-muted)" }}>
+          <p className="text-xs font-mono mt-1 truncate" style={{ color: "var(--cyber-text-muted)" }}>
             target: {entry.fileName ? (
               <span style={{ color: "var(--cyber-cyan)" }}>{entry.fileName}</span>
             ) : entry.url ? (
@@ -151,7 +155,9 @@ export default function ScanResultPage() {
             )}
           </p>
         </div>
-        <GradeBadge grade={report.grade} score={report.score} color={report.color} />
+        <div className="shrink-0 self-start">
+          <GradeBadge grade={report.grade} score={report.score} color={report.color} />
+        </div>
       </div>
 
       <ExecutiveSummary summary={report.executiveSummary} />

@@ -2,6 +2,7 @@
 
 import { FormEvent, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@/components/ThemeProvider";
 
 type ScanType = "domain" | "hash";
 
@@ -20,6 +21,7 @@ async function computeSHA256(file: File): Promise<string> {
 
 export default function Home() {
   const router = useRouter();
+  const { mode, setMode } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [scanType, setScanType] = useState<ScanType>("domain");
   const [target, setTarget] = useState("");
@@ -100,11 +102,19 @@ export default function Home() {
   }
 
   return (
-    <main className="flex-1 flex items-center justify-center p-6">
+    <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
+      <button
+        type="button"
+        onClick={() => setMode(mode === "system" ? "dark" : mode === "dark" ? "light" : "system")}
+        className="cyber-chip active fixed top-3 right-3 z-50 px-3 py-1.5 text-xs font-mono cursor-pointer"
+        title={`Theme: ${mode}`}
+      >
+        {mode === "system" ? "🌓 sys" : mode === "dark" ? "🌙 dark" : "☀️ light"}
+      </button>
       <div className="w-full max-w-lg relative">
-        <div className="text-center mb-10">
+        <div className="text-center mb-8 sm:mb-10">
           <h1
-            className="text-5xl font-bold tracking-tight cyber-glitch"
+            className="text-4xl sm:text-5xl font-bold tracking-tight cyber-glitch"
             data-text="ScanV"
             style={{ fontFamily: "var(--font-geist-mono), monospace" }}
           >
@@ -118,9 +128,9 @@ export default function Home() {
 
         <form
           onSubmit={handleSubmit}
-          className="cyber-card p-6 space-y-5"
+          className="cyber-card p-4 sm:p-6 space-y-4 sm:space-y-5"
         >
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               type="button"
               onClick={() => setScanType("domain")}
@@ -247,7 +257,7 @@ export default function Home() {
               >
                 Depth // port-scan
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   type="button"
                   onClick={() => setDepth("quick")}

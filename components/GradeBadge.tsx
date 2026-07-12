@@ -21,13 +21,13 @@ export function GradeBadge({ grade, score, color }: Props) {
   const sc = scoreColorMap[color] || "var(--cyber-pink)";
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2 sm:gap-4">
       <div
         className={`cyber-grade ${cls}`}
         style={{
-          width: 72,
-          height: 72,
-          fontSize: "1.75rem",
+          width: 56,
+          height: 56,
+          fontSize: "1.35rem",
           background:
             color === "green"
               ? "radial-gradient(circle, rgba(0,255,65,0.15) 0%, transparent 70%)"
@@ -39,9 +39,9 @@ export function GradeBadge({ grade, score, color }: Props) {
       >
         {grade}
       </div>
-      <div className="text-sm font-mono">
+      <div className="text-xs sm:text-sm font-mono">
         <p style={{ color: "var(--cyber-text-muted)" }}>score</p>
-        <p className="text-xl font-bold" style={{ color: sc }}>
+        <p className="text-base sm:text-xl font-bold" style={{ color: sc }}>
           {score}
           <span className="text-xs" style={{ color: "var(--cyber-text-muted)" }}>/100</span>
         </p>

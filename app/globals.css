@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* ─── DARK THEME (default) ─── */
 :root {
   --cyber-bg: #08080f;
   --cyber-surface: #0d0d1a;
@@ -15,6 +16,28 @@
   --cyber-text-muted: #64748b;
   --cyber-glow-green: 0 0 20px rgba(0, 255, 65, 0.3);
   --cyber-glow-cyan: 0 0 20px rgba(0, 212, 255, 0.3);
+  --cyber-scanline: rgba(0, 255, 65, 0.015);
+  --cyber-gridline: rgba(0, 212, 255, 0.04);
+}
+
+/* ─── LIGHT THEME ─── */
+[data-theme="light"] {
+  --cyber-bg: #f0f4f8;
+  --cyber-surface: #ffffff;
+  --cyber-card: rgba(255, 255, 255, 0.75);
+  --cyber-border: rgba(0, 100, 200, 0.15);
+  --cyber-border-active: rgba(0, 120, 255, 0.4);
+  --cyber-green: #00a84d;
+  --cyber-cyan: #0088cc;
+  --cyber-pink: #cc0044;
+  --cyber-purple: #6b21a8;
+  --cyber-amber: #d97706;
+  --cyber-text: #1a1a2e;
+  --cyber-text-muted: #64748b;
+  --cyber-glow-green: 0 0 12px rgba(0, 168, 77, 0.25);
+  --cyber-glow-cyan: 0 0 12px rgba(0, 136, 204, 0.25);
+  --cyber-scanline: rgba(0, 0, 0, 0.02);
+  --cyber-gridline: rgba(0, 100, 200, 0.06);
 }
 
 @theme inline {
@@ -26,9 +49,7 @@
 
 *,
 *::before,
-*::after {
-  box-sizing: border-box;
-}
+*::after { box-sizing: border-box; }
 
 html {
   background: var(--cyber-bg);
@@ -39,31 +60,36 @@ body {
   background: var(--cyber-bg);
   color: var(--cyber-text);
   font-family: var(--font-sans), system-ui, sans-serif;
+  overflow-x: hidden;
 }
 
-/* ── Scanlines overlay ── */
+/* ── Scanlines ── */
 body::after {
   content: "";
   position: fixed;
   inset: 0;
   background: repeating-linear-gradient(
     0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 255, 65, 0.015) 2px,
-    rgba(0, 255, 65, 0.015) 4px
+    transparent, transparent 2px,
+    var(--cyber-scanline) 2px, var(--cyber-scanline) 4px
   );
   pointer-events: none;
   z-index: 9999;
 }
 
-/* ── 3D Perspective Grid ── */
+/* ═══════════════════════════════════════
+   3D BACKGROUND — GPU + CPU friendly
+   Only transform & opacity, no layout/paint
+   ═══════════════════════════════════════ */
+
+/* ── Perspective grid ── */
 .cyber-grid {
   position: fixed;
   inset: 0;
   z-index: 0;
   perspective: 1200px;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .cyber-grid::before {
@@ -71,12 +97,20 @@ body::after {
   position: absolute;
   inset: -100% -100%;
   background-image:
-    linear-gradient(rgba(0, 212, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.04) 1px, transparent 1px);
+    linear-gradient(var(--cyber-gridline) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cyber-gridline) 1px, transparent 1px);
   background-size: 80px 80px;
   transform: rotateX(70deg);
   transform-origin: center bottom;
-  animation: gridDrift 30s linear infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cyber-grid::before { animation: gridDrift 30s linear infinite; }
+}
+
+@keyframes gridDrift {
+  0%   { transform: rotateX(70deg) translateY(0); }
+  100% { transform: rotateX(70deg) translateY(50%); }
 }
 
 .cyber-grid::after {
@@ -84,18 +118,11 @@ body::after {
   position: absolute;
   inset: 0;
   background: radial-gradient(
-    ellipse 100% 60% at 50% 100%,
-    transparent 30%,
-    var(--cyber-bg) 80%
+    ellipse 100% 60% at 50% 100%, transparent 30%, var(--cyber-bg) 80%
   );
 }
 
-@keyframes gridDrift {
-  0% { transform: rotateX(70deg) translateY(0); }
-  100% { transform: rotateX(70deg) translateY(50%); }
-}
-
-/* ── Floating Particles ── */
+/* ── Floating particles (8 max, tiny, GPU) ── */
 .cyber-particles {
   position: fixed;
   inset: 0;
@@ -106,39 +133,96 @@ body::after {
 
 .cyber-particle {
   position: absolute;
-  width: 2px;
-  height: 2px;
+  width: 2px; height: 2px;
   background: var(--cyber-cyan);
   border-radius: 50%;
   opacity: 0;
-  animation: particleFloat 8s infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cyber-particle { animation: particleFloat 10s infinite; }
 }
 
 .cyber-particle:nth-child(1) { left: 10%; top: 20%; animation-delay: 0s; }
-.cyber-particle:nth-child(2) { left: 25%; top: 60%; animation-delay: 1.2s; }
-.cyber-particle:nth-child(3) { left: 40%; top: 10%; animation-delay: 2.4s; }
-.cyber-particle:nth-child(4) { left: 55%; top: 70%; animation-delay: 0.6s; }
-.cyber-particle:nth-child(5) { left: 70%; top: 30%; animation-delay: 3s; }
-.cyber-particle:nth-child(6) { left: 85%; top: 80%; animation-delay: 1.8s; }
-.cyber-particle:nth-child(7) { left: 15%; top: 90%; animation-delay: 4.2s; }
-.cyber-particle:nth-child(8) { left: 90%; top: 15%; animation-delay: 2s; }
-.cyber-particle:nth-child(9) { left: 50%; top: 50%; animation-delay: 3.6s; }
-.cyber-particle:nth-child(10) { left: 5%; top: 45%; animation-delay: 5s; }
-.cyber-particle:nth-child(11) { left: 60%; top: 85%; animation-delay: 0.3s; }
-.cyber-particle:nth-child(12) { left: 35%; top: 5%; animation-delay: 4s; }
+.cyber-particle:nth-child(2) { left: 30%; top: 60%; animation-delay: 1.5s; }
+.cyber-particle:nth-child(3) { left: 50%; top: 10%; animation-delay: 3s; }
+.cyber-particle:nth-child(4) { left: 70%; top: 70%; animation-delay: 0.8s; }
+.cyber-particle:nth-child(5) { left: 85%; top: 30%; animation-delay: 4s; }
+.cyber-particle:nth-child(6) { left: 15%; top: 85%; animation-delay: 2.2s; }
+.cyber-particle:nth-child(7) { left: 65%; top: 45%; animation-delay: 5s; }
+.cyber-particle:nth-child(8) { left: 45%; top: 90%; animation-delay: 3.5s; }
 
 @keyframes particleFloat {
-  0% { opacity: 0; transform: translateY(0) scale(1); }
-  10% { opacity: 0.8; }
-  50% { opacity: 0.3; }
-  90% { opacity: 0.8; }
-  100% { opacity: 0; transform: translateY(-120px) scale(0.5); }
+  0%   { opacity: 0; transform: translateY(0) translateX(0); }
+  15%  { opacity: 0.5; }
+  85%  { opacity: 0.5; }
+  100% { opacity: 0; transform: translateY(-90px) translateX(10px); }
 }
 
+/* ═══════════════════════════════════════
+   SCANNING ANIMATIONS (brief, GPU-only)
+   ═══════════════════════════════════════ */
+
+/* ── Scanning beam ── */
+.cyber-scan-beam {
+  position: fixed;
+  left: 5%; right: 5%;
+  height: 2px;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--cyber-cyan), transparent);
+  opacity: 0;
+  border-radius: 1px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cyber-scan-beam.scanning { animation: beamSweep 3s ease-in-out infinite; }
+}
+
+@keyframes beamSweep {
+  0%   { transform: translateY(-10vh); opacity: 0; }
+  15%  { opacity: 0.5; }
+  85%  { opacity: 0.5; }
+  100% { transform: translateY(110vh); opacity: 0; }
+}
+
+/* ── Expanding ping ring (single, brief) ── */
+.cyber-scan-ring {
+  position: fixed;
+  top: 50%; left: 50%;
+  width: 8px; height: 8px;
+  margin: -4px 0 0 -4px;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cyber-scan-ring.scanning { animation: ringExpand 2.5s ease-out infinite; }
+}
+
+.cyber-scan-ring::before {
+  content: "";
+  display: block;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  border: 1px solid var(--cyber-cyan);
+}
+
+@keyframes ringExpand {
+  0%   { transform: scale(1); opacity: 0.2; }
+  100% { transform: scale(50); opacity: 0; }
+}
+
+/* ═══════════════════════════════════════
+   UI COMPONENTS
+   ═══════════════════════════════════════ */
+
 /* ── Glitch Text ── */
-.cyber-glitch {
-  position: relative;
-  animation: glitchPulse 3s ease-in-out infinite;
+.cyber-glitch { position: relative; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .cyber-glitch { animation: glitchPulse 3s ease-in-out infinite; }
 }
 
 .cyber-glitch::before,
@@ -151,44 +235,42 @@ body::after {
 
 .cyber-glitch::before {
   color: var(--cyber-cyan);
-  animation: glitchShift 4s infinite linear alternate-reverse;
   clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
 }
 
 .cyber-glitch::after {
   color: var(--cyber-pink);
-  animation: glitchShift 4s infinite linear alternate;
   clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .cyber-glitch::before { animation: glitchShift 4s infinite linear alternate-reverse; }
+  .cyber-glitch::after  { animation: glitchShift 4s infinite linear alternate; }
+}
+
 @keyframes glitchShift {
-  0% { opacity: 0; transform: translate(0); }
-  2% { opacity: 0.6; transform: translate(-2px, 1px); }
-  4% { opacity: 0; transform: translate(2px, -1px); }
-  6% { opacity: 0.4; transform: translate(-1px, -0.5px); }
-  8% { opacity: 0; transform: translate(0); }
+  0%   { opacity: 0; transform: translate(0); }
+  2%   { opacity: 0.6; transform: translate(-2px, 1px); }
+  4%   { opacity: 0; transform: translate(2px, -1px); }
+  6%   { opacity: 0.4; transform: translate(-1px, -0.5px); }
+  8%   { opacity: 0; transform: translate(0); }
 }
 
 @keyframes glitchPulse {
   0%, 100% { text-shadow: 0 0 4px var(--cyber-cyan), 0 0 8px var(--cyber-cyan); }
-  50% { text-shadow: 0 0 8px var(--cyber-cyan), 0 0 20px var(--cyber-cyan), 0 0 40px var(--cyber-cyan); }
+  50%      { text-shadow: 0 0 8px var(--cyber-cyan), 0 0 20px var(--cyber-cyan), 0 0 40px var(--cyber-cyan); }
 }
 
 /* ── Neon Glow ── */
-.cyber-glow-green {
-  box-shadow: 0 0 10px rgba(0, 255, 65, 0.2), 0 0 30px rgba(0, 255, 65, 0.1);
-}
-.cyber-glow-cyan {
-  box-shadow: 0 0 10px rgba(0, 212, 255, 0.2), 0 0 30px rgba(0, 212, 255, 0.1);
-}
-.cyber-glow-pink {
-  box-shadow: 0 0 10px rgba(255, 0, 85, 0.2), 0 0 30px rgba(255, 0, 85, 0.1);
-}
+.cyber-glow-green { box-shadow: 0 0 10px rgba(0, 255, 65, 0.2), 0 0 30px rgba(0, 255, 65, 0.1); }
+.cyber-glow-cyan  { box-shadow: 0 0 10px rgba(0, 212, 255, 0.2), 0 0 30px rgba(0, 212, 255, 0.1); }
+.cyber-glow-pink  { box-shadow: 0 0 10px rgba(255, 0, 85, 0.2), 0 0 30px rgba(255, 0, 85, 0.1); }
 
 /* ── Glass Card ── */
 .cyber-card {
   background: var(--cyber-card);
   backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--cyber-border);
   border-radius: 16px;
   transition: border-color 0.3s, box-shadow 0.3s;
@@ -219,23 +301,18 @@ body::after {
   transition: opacity 0.3s;
 }
 
-.cyber-btn:hover::before {
-  opacity: 1;
-}
+.cyber-btn:hover::before { opacity: 1; }
 
 .cyber-btn:hover {
   box-shadow: 0 0 20px rgba(0, 212, 255, 0.2), 0 0 40px rgba(0, 212, 255, 0.1);
   border-color: var(--cyber-cyan);
 }
 
-.cyber-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.cyber-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Neon Input ── */
 .cyber-input {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(128, 128, 128, 0.03);
   border: 1px solid var(--cyber-border);
   color: var(--cyber-text);
   border-radius: 12px;
@@ -248,13 +325,11 @@ body::after {
   box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
 }
 
-.cyber-input::placeholder {
-  color: var(--cyber-text-muted);
-}
+.cyber-input::placeholder { color: var(--cyber-text-muted); }
 
 /* ── Toggle Chip ── */
 .cyber-chip {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(128, 128, 128, 0.03);
   border: 1px solid transparent;
   color: var(--cyber-text-muted);
   transition: all 0.3s;
@@ -278,21 +353,22 @@ body::after {
   border: 2px solid rgba(0, 212, 255, 0.1);
   border-top-color: var(--cyber-cyan);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@media (prefers-reduced-motion: no-preference) {
+  .cyber-spinner { animation: spin 0.8s linear infinite; }
 }
+
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Pulse ring ── */
-.cyber-pulse {
-  animation: pulseRing 2s ease-in-out infinite;
+@media (prefers-reduced-motion: no-preference) {
+  .cyber-pulse { animation: pulseRing 2s ease-in-out infinite; }
 }
 
 @keyframes pulseRing {
-  0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4); }
-  70% { box-shadow: 0 0 0 12px rgba(0, 212, 255, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4); }
+  70%  { box-shadow: 0 0 0 12px rgba(0, 212, 255, 0); }
   100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0); }
 }
 
@@ -312,22 +388,24 @@ body::after {
   inset: -4px;
   border-radius: 50%;
   border: 2px solid;
-  animation: gradePulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cyber-grade::before { animation: gradePulse 2s ease-in-out infinite; }
 }
 
 .cyber-grade.grade-green::before { border-color: var(--cyber-green); }
 .cyber-grade.grade-amber::before { border-color: var(--cyber-amber); }
-.cyber-grade.grade-red::before { border-color: var(--cyber-pink); }
+.cyber-grade.grade-red::before   { border-color: var(--cyber-pink); }
 
 @keyframes gradePulse {
   0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.08); }
+  50%      { opacity: 1; transform: scale(1.08); }
 }
 
 /* ── Severity dots ── */
 .cyber-dot {
-  width: 10px;
-  height: 10px;
+  width: 10px; height: 10px;
   border-radius: 50%;
   position: relative;
 }
@@ -337,7 +415,10 @@ body::after {
   position: absolute;
   inset: -3px;
   border-radius: 50%;
-  animation: dotPulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cyber-dot::after { animation: dotPulse 2s ease-in-out infinite; }
 }
 
 .cyber-dot.critical { background: var(--cyber-pink); }
@@ -353,30 +434,19 @@ body::after {
 
 @keyframes dotPulse {
   0%, 100% { transform: scale(1); opacity: 0.3; }
-  50% { transform: scale(1.5); opacity: 0.6; }
+  50%      { transform: scale(1.5); opacity: 0.6; }
 }
 
-/* ── Link style ── */
+/* ── Link ── */
 .cyber-link {
   color: var(--cyber-cyan);
   transition: text-shadow 0.3s;
 }
 
-.cyber-link:hover {
-  text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
-}
+.cyber-link:hover { text-shadow: 0 0 8px rgba(0, 212, 255, 0.5); }
 
 /* ── Scrollbar ── */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--cyber-bg);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--cyber-border);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--cyber-border-active);
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--cyber-bg); }
+::-webkit-scrollbar-thumb { background: var(--cyber-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cyber-border-active); }

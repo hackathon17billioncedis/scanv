@@ -27,16 +27,16 @@ export function FindingCard({ finding }: Props) {
     <div className="cyber-card overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition cursor-pointer hover:bg-white/[0.02]"
+        className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 sm:py-3.5 text-left transition cursor-pointer hover:bg-white/[0.02]"
       >
         <span className={`cyber-dot ${finding.severity} shrink-0`} />
         <span
-          className="text-xs font-mono font-semibold uppercase tracking-wider w-20 shrink-0"
+          className="text-xs font-mono font-semibold uppercase tracking-wider w-16 sm:w-20 shrink-0 hidden sm:inline"
           style={{ color: "var(--cyber-text-muted)" }}
         >
           {label}
         </span>
-        <span className="text-sm font-mono flex-1 leading-snug">
+        <span className="text-xs sm:text-sm font-mono flex-1 leading-snug min-w-0">
           {finding.title}
         </span>
         <svg
